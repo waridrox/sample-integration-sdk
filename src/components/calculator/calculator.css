@@ -1,0 +1,113 @@
+.phone {
+    background-color: #6E3DD6;
+    width: 20rem;
+    /* height: 70vh; */
+    border-radius: 2rem;
+    margin: auto;
+    position: relative;
+}
+.top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding: 1rem;
+
+}
+.history {
+    background: url('../../assets/history.svg') no-repeat top left;
+    height: 2rem;
+    width: 2rem;
+}
+.historyDetails {
+    position: absolute;
+    bottom: 0px;
+    left: 0;
+    background-color: #fff;
+    padding: 1.4rem 1rem;
+    border-radius: 2rem;
+    height: 23rem;
+    width: 20rem;
+    z-index: 999;
+    overflow-y: scroll;
+}
+.historyDetails li {
+    border-bottom: 1px solid gray;
+    padding-bottom: 10px;
+}
+.delete {
+    background: url('../../assets/delete.svg') no-repeat top left;
+    height: 2rem;
+    width: 2rem;
+}
+.middle {
+    text-align: center;
+    margin-bottom: 3rem;
+    height: 6rem;
+}
+.middle div{
+    overflow-x: scroll;
+    margin-top: 1rem;
+}
+.middle small {
+    font-weight: bold;
+    color: #B9A3EC;
+    font-size: .75rem;
+}
+.middle h1 {
+    color: white;
+    font-size: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -1px;
+}
+
+.bottom {
+    background-color: #fff;
+    padding: 1.4rem 1rem;
+    border-radius: 2rem;
+    font-size: 1.4rem;
+    height: 23rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(4rem,1fr));
+    grid-gap: .5rem;
+}
+.bottom button {
+    background-color: #E6E7E8;
+    padding-top: 12px;
+    border-radius: 1.5rem;
+    font-size: 1.65rem;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    color: #808285;
+}
+.bottom button:nth-child(1) {
+    background-color: #FA386B;
+    color: white;
+    padding-top: 10px;
+}
+.bottom button:nth-child(2) {
+    color: #231F20;
+}
+.bottom button:nth-child(3) {
+    color: #231F20;
+}
+.bottom button:nth-child(4) {
+    color: #231F20;
+}
+.bottom button:nth-child(8) {
+    color: #231F20;
+}
+.bottom button:nth-child(12) {
+    color: #231F20;
+}
+.bottom button:nth-child(16) {
+    color: #231F20;
+}
+.bottom button:nth-child(20) {
+    background-color: #30C117;
+    color: white;
+}
+
+button:focus {
+    outline: none;
+}
