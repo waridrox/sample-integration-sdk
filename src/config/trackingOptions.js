@@ -4,11 +4,11 @@ const options = {
     mouseTrackingElement: '#tracking-area',
     debug: true,
     autoTracking: false,
-    appKey: 'COnSahFyIfhu55A',
-    appSecret: 'A19C8AxI50Cnv1vqVuyU2u8Nlj/WVVgw+xaD7lZ04eiv64XJ4E1+cG9DVMxG3ssWFg==',
+    appKey: 'lg8NokdUS5Gkita',
+    appSecret: 'AjApLA+ghxN2d9LwdFqT32rPRWnhakdAV5m5mbwHoCzvhRw6dkpU5S4ePQL6gZ7tAg==',
     trackingInterval: 60,
     sensorPollingFrequency: 10,
-    packageId: 'testmark1',//testmark1
+    packageId: "package",
 }
 
 export default options

@@ -1,24 +1,21 @@
 <template>
-
 <div class="container flex">
         <div class="flex-1 px-2">
-        <form @submit="(e) => saveProfile(e)" class="bg-white shadow-md rounded px-8 pt-6 pb-6 mb-4 h-full">
+        <form @submit="(e) => saveProfile(e)" class="bg-white shadow-md rounded px-8 pt-6 pb-6 mb-4 h-full" method="post">
           <div class="flex items-center justify-between">
-            <button v-if="stoptrackingtempo" @click="buttonvisible()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" ref="btnToggleMain" type="button">
+            <button v-if="StartTrackingStatus" @click="StartTrackingFunc()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" ref="btnToggleMain" type="button">
               Start Tracking
             </button>
 
-            <button v-else-if="backtostart" @click="takemeback()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" ref="btnToggle" type="button">
+            <button v-else-if="BackToStartStatus" @click="BackToStart()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" ref="btnToggle" type="button">
               Back to Start
             </button>
 
-            <button v-else @click="stoptrackingtemp()" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" ref="btnToggle" type="button">
+            <button v-else @click="StopTrackingFunc()" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" ref="btnToggle" type="button">
               Stop Tracking
             </button> 
 
-
-
-            <button v-if="resultValue" @click="()=>stopTracking()" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800 " type="button">
+            <button v-if="ShowResultStatus" @click="()=>showResults()" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800 " type="button">
               Show Result
             </button>
 
@@ -28,8 +25,7 @@
             </button>
           </div>
 
-
-            <label v-if="resultValue" class="text-center block text-gray-700 text-sm font-bold my-2" for="test-input">
+            <label v-if="ShowResultStatus" class="text-center block text-gray-700 text-sm font-bold my-2" for="test-input">
               Test Form
             </label>
 
@@ -37,9 +33,9 @@
               Tracking Results
             </label>
             
-            <textarea class="shadow appearance-none border rounded h-auto w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" rows="20" ref="populate" id="test-input" type="text"></textarea>
+            <input class="shadow appearance-none border rounded h-auto w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" height="50" ref="populate" id="test-input" type="text">
 
-            <button v-if="resultValue" type="submit" class="w-full bg-black hover:bg-gray-700 text-white font-bold my-4 py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            <button v-if="ShowResultStatus" type="submit" class="w-full bg-black hover:bg-gray-700 text-white font-bold my-4 py-2 px-4 rounded focus:outline-none focus:shadow-outline">
               Submit
             </button> 
 
@@ -103,43 +99,76 @@
 <script>
 import config from '../../config/trackingConfig';
 import options from '../../config/trackingOptions';
-
-// import "../../lib/kinetic-sdk-1.0.1.min.js";
 import { ref, onMounted } from "vue";
 import "./calculator.css";
 import "./../button/Button.vue";
 
-var datt = null;
-var daaa = '';
-// var user = '';
+import jQuery from "jquery";
+const $ = jQuery;
+window.$ = $;
+
+var kinetic;
 
 export default {
   data () {
       return {
-        resultValue: true,
-        variable: true,
-        tracking: false,
-        loading: false,
-        msg: '',
-        kineticTracker: null,
-        data: '',
-        user: '',
-        profile: null,
-
+        BackToStartStatus: false,
+        ShowResultStatus: true,
+        StartTrackingStatus: true,
         sampleResult: '',
-        stoptrackingtempo: true,
-        backtostart: false,
-
         stopTrackingwasClicked: false,
       }
   },
 
+  mounted: function() {
+    this.handler()
+  },
+
   methods: {
+    reportAction(action, checkResp, allowTransaction) {
+        var inputData = {
+            profileCode: localStorage.getItem("profileCode"),
+            action: action,
+            refId: checkResp.refId,
+            type: checkResp.data.type ? checkResp.data.type : 'gesture'
+        };
+
+        kinetic.reportAction(inputData, function (error, outputData) {
+            if (error) {
+                console.log(JSON.stringify(error));
+            }
+
+            console.log('reportAction outputData: ' + JSON.stringify(outputData));
+
+            // If pin input is true or score > threshold then proceed
+            if (allowTransaction) {
+
+                // Do below after report action call response
+                var selectedTransactionType = $("#transactionType :selected").text();
+                localStorage.setItem("transType", selectedTransactionType);
+                var amount = $("#amount").val();
+                localStorage.setItem("amount", amount);
+
+                if (config.disableChallenge == true) {
+                    var transRefId = localStorage.getItem("transRefId");
+                    console.log(transRefId);
+                } else {
+                    // Challenge required.
+                    window.location.href = "challenge.html";
+                }
+            } else {
+                // Deny
+                window.location.href = "transaction-fail.html";
+            }
+
+        });
+    },
+
     deleteData() {
       localStorage.setItem('records', null);
       this.sampleResult = localStorage.getItem('records')
       this.$refs.populate.value = this.sampleResult;
-      console.log('Testing123')
+      console.log('Data deleted successfully!')
     },
     makeTransferId () {
       var text = "";
@@ -152,209 +181,230 @@ export default {
       return text;
     },
 
-
-    reportAction (action, checkResp, allowTransaction) {
-    const inputData = {
-      profileCode: this.profile.profileCode,
-      action: action,
-      refId: checkResp.refId,
-      type: checkResp.data.type ? checkResp.data.type : 'gesture'
-    };
-
-    datt.reportAction(inputData,(error,outputData)=>{
-      if(error){
-        return console.log(JSON.stringify(error));
-      }
-      console.log('reportAction output :',JSON.stringify(outputData))
-
-      if(allowTransaction){
-          console.log('Allow transaction')
-      }
-    })
-  },
-    makeTransaction() {
-      if(this.profile.profileCode===null && this.profile.userName===null){
-        return
-      }
-      datt.trackStop((trackData)=>{
-        this.data = trackData
-        // setData(trackData)
-        this.tracking = false;
-        // setTracking(false)
-        console.log(trackData)
-        const transferId = this.makeTransferId()
-        const body = {
-          gestureInfo: trackData,
-          profileCode: this.profile.profileCode,
-          transRefId: transferId
-        }
-
-        console.log('trackData ' + trackData)
-
-        datt.checkGesture(body,(error,gestureData)=>{
-          const score = gestureData.data.score
-          console.log(gestureData)
-          if(score>=config.scoreThreshold){
-            this.reportAction('allow',gestureData,true)
-            return alert('Your mouse is good : '+score)
-          }
-
-          const getPin = prompt('Your mouse score is not good :'+score+'\n Please enter your PIN ',"")
-          if (getPin == null || getPin == "") {
-              // PIN cancelled
-              this.reportAction('deny', gestureData, false);
-          } else {
-              // PIN entered
-              if (getPin == config.defaultPin) {
-                  // PIN is correct
-                  this.reportAction('allow', gestureData, true);
-              } else {
-                  // PIN is wrong
-                  this.reportAction('deny', gestureData, false);
-              }
-          }
-          })
-      })
-    },
-
-    takemeback() {
-      this.resultValue = true;
+    BackToStart() {
       this.$refs.populate.value = '';
-      this.backtostart = false;
-      this.stoptrackingtempo = true;
+      this.BackToStartStatus = false;
+      this.StartTrackingStatus = true;
+      this.ShowResultStatus = true;
     },
 
 
     handler() {
-      const kinetic = new window.ZFS.KineticTracker(options);
+      kinetic = new window.ZFS.KineticTracker(options);
       kinetic.init();
-      this.kineticTracker = kinetic;
-      datt = kinetic;
-      // setKinaticTracker(kinetic);
-      console.log(kinetic);
     },
-    buttonvisible() {
-      this.variable = !this.variable;
-      let target_element = document.getElementById("tracking-area")
-      target_element.classList.toggle('border-2')
+    StartTrackingFunc() {
+      $('#tracking-area').toggleClass('border-2')
 
-      // this.$refs.btnToggle.innerText = this.variable?'Start Tracking':'Stop Tracking';
-      this.startTracking();
-      this.stoptrackingtempo = false
-    },
-    startTracking() {
-      console.log(options)
-      this.handler()
-      // console.log({ ...this.kineticTracker })
-      // console.log((this.kineticTracker));
-      datt.trackStart()
-      console.log(datt);
-      // this.kineticTracker.trackStart()
-      this.tracking = true;
+      kinetic.trackStart()
       console.log('tracking started !')
+
+      this.StartTrackingStatus = false
     },
+
+    loginProfile(userName, text, callback) {
+
+    if (text == null) {
+        text = userName
+    }
+
+    var userData = {
+        name: userName,
+        uCode: userName
+    };
+
+    console.log(userData)
+    kinetic.getProfile(userData, async function (error, profileData) {
+                  console.log(profileData)
+
+        if (error) {
+            console.log(error);
+            callback((error.data.errors[0].message));
+        } else {
+            console.log(profileData)
+            localStorage.setItem("profileCode", profileData.data.profileCode);
+            localStorage.setItem("userName", userName);
+
+            console.log('all set successfully')
+
+            document.getElementById('test-input').disabled = true;
+        }
+    });
+},
 
     async saveProfile(e) {
       e.preventDefault();
 
-      if(this.user==='') return;
+      var userName = $('#test-input').val()
+      console.log("Username: ", userName)
 
-      const userData = {
-        name:this.user,
-        uCode:this.user
-    }
-    datt.getProfile(userData,function(error,data){
-        console.log(data)
-        if(error){
-            alert("Error !")
-            return console.log(JSON.stringify(error))
+        if (userName != "") {
+
+            this.loginProfile(userName, userName, function (error, response) {
+                if (error) {
+                    console.log(error);
+                    alert(error);
+                } else {
+
+                    // Added inverse logic for confidence
+                    var confidence = (100 - parseFloat(response.responseData.data.confidence));
+
+                    if (response.responseData.data.score > config.loginThreshold) {
+                        alert('Authentication Success. (Score = ' + response.responseData.data.score + ' and Confidence = ' + confidence + ')');
+                        window.login(response.userName, function (error, response) {
+                            if (error) {
+                                console.log(error);
+                                alert(error);
+                            } else {
+                              console.log(response)
+                                window.location.href = "transaction.html";
+                            }
+                        });
+                    } else {
+                        alert('Authentication Failed. (Score = ' + response.responseData.data.score + ' and Confidence = ' + confidence + ')');
+                        //window.location.href = "index.html";
+                        // Ask for PIN input
+                        var getPin = prompt("Please enter your PIN", "");
+
+                        if (getPin == null || getPin == "") {
+                            // PIN cancelled
+                            window.location.href = "index.html";
+                        } else {
+
+                            // PIN entered
+                            if (getPin == config.defaultPin) {
+                                // PIN is correct
+                                window.login(response.userName, function (error, response) {
+                                    if (error) {
+                                        console.log(error);
+                                        alert(error);
+                                    } else {
+                                      console.log(response)
+                                        window.location.href = "transaction.html";
+                                    }
+                                });
+                            } else {
+                                // PIN is wrong
+                                window.location.href = "index.html";
+                            }
+                        }
+                    }
+                }
+            });
         }
-        console.log("successfully saved profile")
-        this.profile = data.data
-    })
+    },
+
+    // Make transaction reference ID
+    makeTransRefId() {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-";
+
+    for (var i = 0; i < 37; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+
+    return text;
+    },
+
+    // Make transaction func
+    makeTransaction() {
+        var userName = localStorage.getItem("userName");
+        var profileCode = localStorage.getItem("profileCode");
+        var tempMethods = this
+
+        if (profileCode == "" || userName == "") {
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("userName");
+            localStorage.removeItem("profileCode");
+            alert("Your session has expired. Please login again");
+            window.location.href = "index.html";
+        } else {
+            kinetic.trackStop(function (trackData) {
+                var transRefId = tempMethods.makeTransRefId()
+                var body = {
+                    gestureInfo: trackData,
+                    profileCode: profileCode,
+                    transRefId: transRefId
+                };
+
+                console.log('trackData ' + trackData)
+
+                kinetic.checkGesture(body, function (error, gestureData) {
+                    if (error) {
+                        alert(JSON.stringify(error));
+                    } else {
+                        localStorage.setItem("transRefId", gestureData.refId);
+                        localStorage.setItem("appRefId", gestureData.data.reqRefId);
+
+                        var score = gestureData.data.score;
+
+                        // Score greater than thresh. value
+                        if (score >= config.scoreThreshold) {
+                            tempMethods.reportAction('allow', gestureData, true);
+                            alert("Your mouse score is good: " + score);
+
+                        } else {
+                            // Score less than thres. value
+
+                            // Ask for PIN input
+                            var getPin = prompt("Your mouse score is not good " + score + "\nPlease enter your PIN", "");
+
+                            if (getPin == null || getPin == "") {
+                                // PIN cancelled
+                                tempMethods.reportAction('deny', gestureData, false);
+                            } else {
+
+                                // PIN entered
+                                if (getPin == config.defaultPin) {
+                                    // PIN is correct
+                                    tempMethods.reportAction('allow', gestureData, true);
+                                } else {
+                                    // PIN is wrong
+                                    tempMethods.reportAction('deny', gestureData, false);
+                                }
+                            }
+                        }
+                    }
+                });
+
+                localStorage.setItem('records',JSON.stringify(trackData))
+            });
+            this.StartTrackingStatus = true
+        }
     },
     
-    async stoptrackingtemp() {
-      
-      // this.stoptrackingtempo = false
-      let target_element = document.getElementById("tracking-area")
-      target_element.classList.toggle('border-2')
+    async StopTrackingFunc() {
+      $('#tracking-area').toggleClass('border-2')
 
-      if(this.profile!==null) {
-        return this.makeTransaction()
-      }
+      this.makeTransaction()
 
-      else{
-                this.stopTrackingwasClicked = true;
+      this.stopTrackingwasClicked = true;
+      this.StartTrackingStatus = false
+      this.BackToStartStatus = true
 
-        await datt.trackStop(async function(trackingData) {
-            daaa = trackingData;
-            console.log(daaa);
-
-            console.log(trackingData)
-            console.log('tracker is stopped')
-
-            
-            localStorage.setItem('records',JSON.stringify(trackingData))
-
-        })
-
-      }
-
-            this.stoptrackingtempo = true
+      console.log('Tracking Stopped successfully!')
     },
 
-    async stopTracking() {
+    //Show results
+    async showResults() {
 
-      if (this.stopTrackingwasClicked == false) { //false
+      if (this.stopTrackingwasClicked == false) {
           window.alert('Stop the tracking first')
       }
       else {
-
-            this.resultValue = false
-
-            this.stoptrackingtempo = false
-            this.backtostart = true
-
-            try {
-            const userData = {
-              name:this.user==''? 'No User':this.user,
-              uCode:this.user==''? 'No User':this.user
-            }
-
-            datt.getProfile(userData, function(data, error) {
-            console.log(data)
-            if(error){
-                alert("Error !")
-                console.log(JSON.stringify(error))
-            }
-            else{
-                console.log("successfully saved profile")
-            }
-        })
-              // this.saveProfile();
-            }
-            catch (e) {
-              console.log(e);
-            }
-        // });
-        // this.resultValue = false;
-        this.tracking = false;
         this.sampleResult = localStorage.getItem('records');
 
-        // this.backtostart = false
-
-        // this.$refs.btnToggleMain.innerText = 'Back to Start'
-        // if (this.$refs.populate.innerText!=='')
         this.$refs.populate.value = this.sampleResult;
         console.log(this.sampleResult);
 
         console.log(this.$refs.populate.value);
         console.log(options)
-        // this.stopTrackingwasClicked
+        this.ShowResultStatus = false;
       }
     }
   },
+
+  //Calculator functionality
   setup() {
     const operations = ["+", "-", "*", "/", "%", "()"];
     const numbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "."];
