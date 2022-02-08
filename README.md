@@ -1,4 +1,6 @@
-# vue3
+# vue3 sample app for integration with Zighra SDK
+
+https://sidv2.zighra.com:8443/docs/web/quick-start
 
 ## Project setup
 ```
